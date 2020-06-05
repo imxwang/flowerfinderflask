@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+<div class="jumbotron">
+    <h1>Flower Finder</h1>
+</div>
+
+<div class="row">
+    <div>
+        Enter image url:
+    </div>
+    <form method="post" action="/imgurl">
+        <input type="text" id="imgURL" name="imgURL">
+        <input type="submit" value="Process">
+    </form>
+</div>
+
+<div class="row" style="margin-top:30px;">
+    <div>
+        Output image:
+    </div>
+    <img src="{{ imgpath }}" />
+</div>
+
+{% endblock %}
