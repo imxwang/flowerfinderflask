@@ -2,11 +2,12 @@
 
 {% block content %}
 
-<div class="jumbotron">
-    <h1>Flower Finder</h1>
+
+<div class="jumbotron" style = "font-size:18px">
+    <h1>Bouquet Interpreter</h1>
 </div>
 
-<div class="row">
+<div class="row" style = "font-size:18px">
     <div>
         Enter image url:
     </div>
@@ -16,11 +17,29 @@
     </form>
 </div>
 
-<div class="row" style="margin-top:30px;">
+<div class="row" style="margin-top:15px;font-size: 18px;">
     <div>
         Output image:
     </div>
-    <img src="{{ imgpath }}" />
+    <img src="{{ imgpath }}" style="width:30%; height:auto"/>
 </div>
+
+
+<div class="row" style="margin-top:5px; font-size: 18px;"> 
+	<ol> 
+	<!-- For loop logic of jinja template -->
+	{% if preds is defined %}
+		{% for pred in preds %}
+			<li>{{ pred }}</li> 
+		 {% endfor %}	
+		<div style="position:relative;left:-37px;font-size: 18px;">
+		Order your wedding flowers: <br>
+		<a href="bloomsbythebox.com">Blooms by the Box</a><br>
+		<a href="https://www.fiftyflowers.com">FiftyFlowers</a><br>
+		<a href="https://globalrose.com">GlobalRose</a>
+		</div>
+	{% endif %}
+	</ol> 
+ </div> 
 
 {% endblock %}
