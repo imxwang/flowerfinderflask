@@ -25,14 +25,45 @@
 </div>
 
 
-<div class="row" style="margin-top:5px; font-size: 18px;"> 
+<div class="row" style="margin-top:10px; font-size: 18px;"> 
 	<ol> 
 	<!-- For loop logic of jinja template -->
 	{% if preds is defined %}
-		{% for pred in preds %}
-			<li>{{ pred }}</li> 
-		 {% endfor %}	
-		<div style="position:relative;left:-37px;font-size: 18px;">
+		<style type="text/css"> 
+      
+			th:tr{ 
+				color: blue; 
+  
+			} 
+			tr:nth-of-type(2n){ 
+				border: 1px solid black; 
+				background-color: rgba(150, 150, 150, 0.5); 
+  
+			} 
+  
+			td{ 
+				padding: 8px 8px; 
+				border: 1px solid black; 
+			} 
+		</style> 
+		<table style="position:relative;left:-57px;margin-left: 20px; margin-top:10px"> 
+		<!-- Table headers -->
+			<th> 
+				<tr style="color: green; ">     
+				<td>Crops</td> 
+				<td>Predictions</td> 
+		</tr> 
+			</th> 
+		{% for key, value in preds.items() %}
+		<tr>
+			<td> <img class="image" src="{{ url_for('static', filename = key ) }}"> </td> 
+			{% for i in value %}
+				<td> {{ i }} </td>
+			{% endfor %}
+		{% endfor %}	
+		</tr>
+		</table>
+		<div style="position:relative;left:-39px;font-size: 18px; margin-top:10px">
 		Order your wedding flowers: <br>
 		<a href="bloomsbythebox.com">Blooms by the Box</a><br>
 		<a href="https://www.fiftyflowers.com">FiftyFlowers</a><br>

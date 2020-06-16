@@ -334,17 +334,18 @@ def crop_box(top_boxes, downloaded_image_path, directory, model):
     image_array = image_array[c:d,a:b]
     converted=tf.image.convert_image_dtype((cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR)), tf.float32)[tf.newaxis, ...]
     #print(converted.shape[2])
-    filename = directory+"/{}_crop{}.jpg".format(filedir, box)
-    cv2.imwrite(filename, cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR))
+    full_filename = directory+"/{}_crop{}.jpg".format(filedir, box)
+    cv2.imwrite(full_filename, cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR))
+    filename = 'crops/'+full_filename.split('/')[-1]
     try:
-      preds = predictions(converted, model = model, threshold=.5)
+      preds = predictions(converted, model = model, threshold=.3)
       #print(box, preds)
     except:
       preds = ['could not make classification']
       pass
     #image_array_list.append(preds)
     #flattened = [val for sublist in image_array_list for val in sublist]
-    predsdict[filename=preds]
+    predsdict[filename]=preds
   return predsdict
  #unique(flattened)
 #preds = crop_box(get_min_boxes, downloaded_image_path, directory)  

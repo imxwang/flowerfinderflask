@@ -24,7 +24,7 @@ def home():
         title='Home Page',
         year=datetime.now().year,
     )
-
+    
 
 @app.route('/imgurl', methods=['POST'])
 def imgurl():
@@ -34,7 +34,7 @@ def imgurl():
     new_result = non_max_suppression(result)
     areas = get_box_areas(new_result)
     min_boxes = get_min_boxes(new_result, areas=areas, minsize=1.25)
-    preds = crop_box(min_boxes, downloaded_image_path, directory='./flaskexample/instance/Crops', model = model) 
+    preds = crop_box(min_boxes, downloaded_image_path, directory='./flaskexample/static/crops', model = model) 
     return render_template(
         'index.html',
         title='Home Page',
