@@ -1,13 +1,45 @@
 {% extends "layout.html" %}
 
 {% block content %}
+<style type="text/css">
 
+    tr {
+        color: green;
+        background-color: white;
+    }
 
-<div class="jumbotron" style = "font-size:18px">
-    <h1>Bouquet Interpreter</h1>
+    td {
+        padding: 8px 8px;
+        border: none;
+    }
+
+    .topRow {
+        color: green;
+    }
+
+    .navbar-inverse {
+        background: url('/static/img/flowericon2.png');
+        background-repeat: repeat-x;
+        border:none;
+    }
+
+    footer {
+        bottom: 0;
+        left: 0;
+        height: 30px;
+        width: 100%;
+        padding-left:30px;
+    }
+</style>
+
+<div class="text-center">
+    <img style="height:200px" src="/static/img/rosefind.png" />
+    <div>
+        <h2 style="font-family:'Canela Regular',serif">Bouquet Interpreter</h2>
+    </div>
 </div>
 
-<div class="row" style = "font-size:18px">
+<div class="row text-center" style="margin-top:30px;font-size:18px">
     <div>
         Enter image url:
     </div>
@@ -17,60 +49,54 @@
     </form>
 </div>
 
-<div class="row" style="margin-top:15px;font-size: 18px;">
-    <div>
-        Output image:
+<div class="row" style="margin-top:10px; font-size: 18px;background:white">
+    <div class="col-md-6">
+        <!-- For loop logic of jinja template -->
+        {% if originalPreds is defined %}
+        <table style="position:relative;left:-57px;margin-left: 20px; margin-top:10px">
+            <!-- Table headers -->
+
+            <tr class="topRow">
+                <td>First Pass Analysis</td>
+                <td>Predictions</td>
+            </tr>
+            {% for key, value in originalPreds.items() %}
+            <tr>
+                <td> <img class="image" style="width:360px;" src="{{ url_for('static', filename = key ) }}"> </td>
+                <td> {{ value|join(", ") }} </td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <div style="position:relative;left:-39px;font-size: 18px; margin-top:10px">
+            Order your wedding flowers: <br>
+            <a href="bloomsbythebox.com">Blooms by the Box</a><br>
+            <a href="https://www.fiftyflowers.com">FiftyFlowers</a><br>
+            <a href="https://globalrose.com">GlobalRose</a>
+        </div>
+        {% endif %}
     </div>
-    <img src="{{ imgpath }}" style="width:30%; height:auto"/>
+
+    <div class="col-md-6">
+        <!-- For loop logic of jinja template -->
+        {% if preds is defined %}
+        <table style="position:relative;left:-57px;margin-left: 20px; margin-top:10px">
+            <!-- Table headers -->
+
+            <tr class="topRow">
+                <td>Cropped Image Analysis</td>
+                <td>Predictions</td>
+            </tr>
+            {% for key, value in preds.items() %}
+            <tr>
+                <td> <img class="image" style="width:200px;" src="{{ url_for('static', filename = key ) }}"> </td>
+                <td> {{ value|join(", ") }} </td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% endif %}
+    </div>
 </div>
 
-
-<div class="row" style="margin-top:10px; font-size: 18px;"> 
-	<ol> 
-	<!-- For loop logic of jinja template -->
-	{% if preds is defined %}
-		<style type="text/css"> 
-      
-			th:tr{ 
-				color: blue; 
-  
-			} 
-			tr:nth-of-type(2n){ 
-				border: 1px solid black; 
-				background-color: rgba(150, 150, 150, 0.5); 
-  
-			} 
-  
-			td{ 
-				padding: 8px 8px; 
-				border: 1px solid black; 
-			} 
-		</style> 
-		<table style="position:relative;left:-57px;margin-left: 20px; margin-top:10px"> 
-		<!-- Table headers -->
-			<th> 
-				<tr style="color: green; ">     
-				<td>Crops</td> 
-				<td>Predictions</td> 
-		</tr> 
-			</th> 
-		{% for key, value in preds.items() %}
-		<tr>
-			<td> <img class="image" src="{{ url_for('static', filename = key ) }}"> </td> 
-			{% for i in value %}
-				<td> {{ i }} </td>
-			{% endfor %}
-		{% endfor %}	
-		</tr>
-		</table>
-		<div style="position:relative;left:-39px;font-size: 18px; margin-top:10px">
-		Order your wedding flowers: <br>
-		<a href="bloomsbythebox.com">Blooms by the Box</a><br>
-		<a href="https://www.fiftyflowers.com">FiftyFlowers</a><br>
-		<a href="https://globalrose.com">GlobalRose</a>
-		</div>
-	{% endif %}
-	</ol> 
- </div> 
 
 {% endblock %}

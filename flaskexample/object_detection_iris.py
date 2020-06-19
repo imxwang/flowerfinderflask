@@ -1,7 +1,15 @@
+#for loading model
+import re
+import os
+from os import path
+from os import listdir
+from tensorflow import keras
+
 # For running inference on the TF-Hub module.
 import tensorflow as tf
 
 import tensorflow_hub as hub
+from keras_preprocessing import image
 
 # For downloading the image.
 import matplotlib.pyplot as plt
@@ -17,28 +25,23 @@ from PIL import ImageDraw
 from PIL import ImageFont
 from PIL import ImageOps
 
-# For measuring the inference time.
-import time
+
 import cv2
 
-#for loading model
-import re
-from os import listdir
-from os.path import isfile, join
-from tensorflow import keras
 
 # Print Tensorflow version
-#print(tf.__version__)
+print(tf.__version__)
 
 # Check available GPU devices.
 #print("The following GPU devices are available: %s" % tf.test.gpu_device_name())
 
-"""## Example use
-
-### Helper functions for downloading images and for visualization.
-
-Visualization code adapted from [TF object detection API](https://github.com/tensorflow/models/blob/master/research/object_detection/utils/visualization_utils.py) for the simplest required functionality.
-"""
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+module_handle = "https://tfhub.dev/google/openimages_v4/ssd/mobilenet_v2/1" 
+detector = hub.load(module_handle).signatures['default']
+execution_path = os.getcwd()
+model_path = os.path.join(execution_path, 'flaskexample', 'model', 'model4_with_sigmoid.h5')
+model = keras.models.load_model(model_path)
+folder = os.path.join(execution_path, 'flaskexample', 'static', 'crops')
 
 def display_image(image):
   fig = plt.figure(figsize=(20, 15))
@@ -47,13 +50,10 @@ def display_image(image):
 
 
 def download_and_resize_image(url, new_width=1280, new_height=1280, display=False):
-    _, filename = tempfile.mkstemp(dir="./flaskexample/instance/Original", suffix=".jpg")
+    img_original_path = os.path.join(os.getcwd(), 'flaskexample', 'static', 'original')
+    _, filename = tempfile.mkstemp(dir=img_original_path, suffix='.jpg')
     response = urlopen(url)
-    image_data = response.read()
-    image_data = BytesIO(image_data)
-    pil_image = Image.open(image_data)
-    #im_width, im_height = pil_image.size
-    #new_height = int((im_height*1500)/im_width)
+    pil_image = Image.open(BytesIO(response.read()))
     pil_image = ImageOps.fit(pil_image, (new_width, new_height), Image.ANTIALIAS)
     pil_image_rgb = pil_image.convert("RGB")
     pil_image_rgb.save(filename, format="JPEG", quality=90)
@@ -135,35 +135,19 @@ def draw_boxes(image, boxes, class_names, scores, max_boxes=100, min_score=0.1):
       np.copyto(image, np.array(image_pil))
   return image
 
-"""## Apply module
 
-Load a public image from Open Images v4, save locally, and display.
-"""
 
-#image_url = "https://cdn.shopify.com/s/files/1/1204/3320/products/40558696243_e763056082_o_800x800.jpg?v=1554306597"  #@param
-#downloaded_image_path = download_and_resize_image(image_url, 1280, 1280, True)
-
-"""Pick an object detection module and apply on the downloaded image. Modules:
-* **FasterRCNN+InceptionResNet V2**: high accuracy,
-* **ssd+mobilenet V2**: small and fast.
-"""
-
-#module_handle = "https://tfhub.dev/google/openimages_v4/ssd/mobilenet_v2/1" #@param ["https://tfhub.dev/google/openimages_v4/ssd/mobilenet_v2/1", "https://tfhub.dev/google/faster_rcnn/openimages_v4/inception_resnet_v2/1"]
-
-#detector = hub.load(module_handle).signatures['default']
-
-def load_img(path):
+def load_image(path):
   img = tf.io.read_file(path)
   img = tf.image.decode_jpeg(img, channels=3)
   return img
 
 def run_detector(detector, path):
-  img = load_img(path)
+  img = load_image(path)
 
   converted_img  = tf.image.convert_image_dtype(img, tf.float32)[tf.newaxis, ...]
-  start_time = time.time()
   result = detector(converted_img)
-  end_time = time.time()
+
 
   result = {key:value.numpy() for key,value in result.items()}
   
@@ -175,10 +159,8 @@ def run_detector(detector, path):
 
   for i in range(0, len(result['detection_class_entities'])):
     temp = result['detection_class_entities'][i].decode("utf-8")
-    #print(temp)
+
     if "Flower"==temp or "Rose"==temp or "Lily"==temp:
-      #print(type(result['detection_boxes'][1]))
-      #print(i, result['detection_boxes'][i])
       detection_box = (result['detection_boxes'][i]).tolist()
       detection_boxes.append(detection_box)
       detection_scores = np.append(detection_scores, result['detection_scores'][i])
@@ -186,24 +168,15 @@ def run_detector(detector, path):
   detection_boxes = np.array(detection_boxes)
   new_result = {'detection_boxes': detection_boxes, 'detection_scores': detection_scores, 'detection_class_entities': detection_class_entities}
 
-  #print("Found %d flowers." % len(new_result["detection_scores"]))
-  #print("Inference time: ", end_time-start_time)
   return new_result
 
 def initiate_all_boxes(new_result, path): 
-  img = load_img(path)
-  #converted_img  = tf.image.convert_image_dtype(img, tf.float32)[tf.newaxis, ...]
+  img = load_image(path)
   image_with_boxes = draw_boxes(
       img.numpy(), new_result["detection_boxes"],
       new_result["detection_class_entities"], new_result["detection_scores"])
   display_image(image_with_boxes)
-  #plot = display_image(image_with_boxes)
-  #plt.savefig('/content/drive/My Drive/Flowers insight project/testplot.png')
-
-#result=run_detector(detector, downloaded_image_path)
-#initiate_all_boxes(result, downloaded_image_path)
-
-#print(result)
+  
 def non_max_suppression(result, iou_threshold=.1, score_threshold=.1):
   boxes = result['detection_boxes']
   scores = result['detection_scores']
@@ -217,7 +190,7 @@ def non_max_suppression(result, iou_threshold=.1, score_threshold=.1):
   new_result = {'detection_boxes': selected_boxes, 'detection_scores': selected_scores, 'detection_class_entities': selected_entities}
   return new_result
 
-#new_result = non_max_suppression(result)
+
 
 def get_box_areas(result):
   area = []
@@ -228,18 +201,14 @@ def get_box_areas(result):
     area.append(w*h)
   return area
 
-# areas = get_box_areas(new_result)
-# print(areas)
+
 
 def get_top_index(areas_list, ntop=10):
   top = ntop*-1
   topn_index = sorted(range(len(areas_list)), key=lambda i: areas_list[i])[top:]
   return topn_index
 
-# topn_index = get_top_index(areas)
-# print(topn_index)
-# fake_list = [52, 10, 11, 23, 14, 2]
-# get_top_index(fake_list, ntop=1)
+
 
 def get_top_boxes(result, indexes):
   top_boxes = []
@@ -247,22 +216,7 @@ def get_top_boxes(result, indexes):
     top_boxes.append(result['detection_boxes'][index])
   return top_boxes
 
-# top_boxes = get_top_boxes(new_result, topn_index)
 
-# print(top_boxes)
-
-# for box in top_boxes:
-#   w = box[3]-box[1]+1
-#   h = box[2]-box[0]+1
-#   area = w*h
-#   print(area)
-
-# min_area=[i for i in areas if i>1.25]
-# #print(min_area)
-# minsize=1.25
-# indices = [i for i,v in enumerate(areas) if v >=minsize]
-# print(len(areas))
-# print(indices)
 
 def get_min_boxes(result, areas, minsize=1.25):
   indexes = [i for i,v in enumerate(areas) if v >=minsize]
@@ -271,37 +225,7 @@ def get_min_boxes(result, areas, minsize=1.25):
     min_boxes.append(result['detection_boxes'][index])
   return min_boxes
 
-# get_min_boxes = get_min_boxes(new_result)
 
-# print(len(get_min_boxes))
-# for box in get_min_boxes:
-#   w = box[3]-box[1]+1
-#   h = box[2]-box[0]+1
-#   area = w*h
-#   print(area)
-
-#  draw = ImageDraw.Draw(image)
-#   im_width, im_height = image.size
-#   (left, right, top, bottom) = (xmin * im_width, xmax * im_width,
-#                                 ymin * im_height, ymax * im_height)
-# print(downloaded_image_path.split('.')[0].split('/')[2])
-
-#from tensorflow.keras.preprocessing.image import load_img, img_to_array
-
-# model = keras.models.load_model('/content/drive/My Drive/Flowers insight project/model2.h5')
-# labels = ['daisy', 'ranunculus', 'roses', 'sunflowers', 'tulips']
-
-def predictions(image, model, threshold=.1):
-  labels = ['calla lily', 'dahlia', 'daisy', 'iris', 'lily', 'peony', 'ranunculus', 'rose', 'sunflower', 'tulip']
-  preds = model.predict_proba(image, verbose=1)
-  #print(preds)
-  img_label = []
-  for i in range(0, len(preds[[0]][0])):
-    if preds[[0]][0][i]>threshold:
-      img_label.append(labels[i])
-  return img_label
-
-#directory = "/content/drive/My Drive/Flowers insight project/crops"
 
 def unique(list1): 
     x = np.array(list1) 
@@ -310,18 +234,13 @@ def unique(list1):
 
 def crop_box(top_boxes, downloaded_image_path, directory, model):
   predsdict = {}
-  #image_array_list = []
-  # im=Image.open(downloaded_image_path)
-  # image_array=load_img(downloaded_image_path).numpy()
-  # image=Image.fromarray(image_array).convert("RGB")
-  # im_width, im_height = image.size
+  
   filedir=downloaded_image_path.split('.')[0].split('/')[-1]
   for box in range(0, len(top_boxes)):
-    image_array=load_img(downloaded_image_path).numpy()
+    image_array=load_image(downloaded_image_path).numpy()
     image=Image.fromarray(image_array).convert("RGB")
     im_width, im_height = image.size
     bbox = tuple(top_boxes[box])
-    #print(bbox)
     
     ymin = bbox[0]
     xmin = bbox[1]
@@ -333,38 +252,92 @@ def crop_box(top_boxes, downloaded_image_path, directory, model):
 
     image_array = image_array[c:d,a:b]
     converted=tf.image.convert_image_dtype((cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR)), tf.float32)[tf.newaxis, ...]
-    #print(converted.shape[2])
+   
     full_filename = directory+"/{}_crop{}.jpg".format(filedir, box)
     cv2.imwrite(full_filename, cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR))
     filename = 'crops/'+full_filename.split('/')[-1]
-    try:
-      preds = predictions(converted, model = model, threshold=.3)
-      #print(box, preds)
-    except:
-      preds = ['could not make classification']
-      pass
-    #image_array_list.append(preds)
-    #flattened = [val for sublist in image_array_list for val in sublist]
+    preds = predictions(converted, threshold=.3)
     predsdict[filename]=preds
   return predsdict
- #unique(flattened)
-#preds = crop_box(get_min_boxes, downloaded_image_path, directory)  
+  
+    
+def save_crops(top_boxes, downloaded_image_path, directory):
+    filedir = downloaded_image_path.split('.')[0].split('/')[-1]
+    fileNames = []
+    for box in range(0, len(top_boxes)):
+        image_array = load_image(downloaded_image_path).numpy()
+        image=Image.fromarray(image_array).convert("RGB")
+        im_width, im_height = image.size
+        bbox = tuple(top_boxes[box])
 
-#print(image_array)
-#display_image(Image.fromarray(image_array))
-#image=Image.fromarray(image_array)
-#print(image.size)
-#image_array2=image.crop((left, right, top, bottom))
-#print(image_array2.size)
-#display_image(image_array2)
+        ymin, xmin, ymax, xmax = bbox[0], bbox[1], bbox[2], bbox[3]
 
-# unique = unique(preds)
-# print(unique)
+        (left, right, top, bottom) = (xmin * im_width, xmax * im_width,
+                                        ymin * im_height, ymax * im_height)
 
-# for i in image_array_list:
-#   try:
-#     preds = predictions(i, model = model)
-#     print(preds)
-#   except:
-#     pass
+        a,b,c,d = int(left) - 10 if int(left) > 10 else 0, int(right) + 10 if int(right) + 10 < im_width else im_width, int(top) - 10 if int(top) > 10 else 0, int(bottom) + 10 if int(bottom) + 10 < im_height else im_height
+
+        image_array = image_array[c:d,a:b]
+        newFileName = "{}_crop{}".format(filedir, box)
+        cv2.imwrite(os.path.join(directory, newFileName  + ".jpg"), cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR))
+        fileNames.append(newFileName)
+    return fileNames
+
+
+def resize(image_path):
+  img = image.load_img(image_path, target_size=(224,224))
+  img = image.img_to_array(img)
+  img = np.expand_dims(img, axis=0)
+  img /= 255
+  return img
+
+
+
+def predictions(image, threshold=.5):
+    preds = model.predict_proba(image, verbose=1)  
+    labels = ['Calla Lily', 'Dahlia', 'Daisy', 'Iris', 'Lily', 'Peony', 'Ranunculus', 'Rose', 'Sunflower', 'Tulip']
+    #print(preds)
+    img_label = []
+    img_values = []
+    for i in range(0, len(preds[[0]][0])):
+        if preds[[0]][0][i]>threshold:
+            img_values.append((preds[[0]][0][i], i))
+
+    img_values = sorted(img_values, reverse=True)
+    if len(img_values)==0:
+        img_label.append('Undetermined')
+    else:
+        for i in range(0, len(img_values)):
+            img_label.append(labels[img_values[i][1]])
+            
+    return img_label
+
+
+
+def get_predictions(directory, threshold=.5, fileNames = []):
+  predsdict={}
+  for filename in fileNames:
+    filename = filename + '.jpg'
+    path = os.path.join(directory, filename)
+    pic = resize(path)
+    preds = predictions(image = pic, threshold = threshold)
+    predsdict['crops/' + filename]=preds
+  return predsdict
+  
+def processImgFromURL(imgpath):
+    downloaded_image = download_and_resize_image(imgpath)
+    originalPreds = predictions(resize(downloaded_image), threshold=.1)
+    origPredsDict = {}
+    origPath = os.path.basename(downloaded_image)
+    origPredsDict['original/' + origPath] = originalPreds
+    result = run_detector(detector = detector, path = downloaded_image)
+    new_result = non_max_suppression(result)
+    areas = get_box_areas(new_result)
+    min_boxes = get_min_boxes(new_result, areas = areas, minsize = 1.25)
+    fileNames = save_crops(min_boxes, downloaded_image_path = downloaded_image, directory = folder)
+    predsDict = get_predictions(folder, .5, fileNames)
+    return [predsDict, origPredsDict]  
+
+
+
 
