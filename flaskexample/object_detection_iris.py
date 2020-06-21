@@ -30,10 +30,7 @@ import cv2
 
 
 # Print Tensorflow version
-print(tf.__version__)
-
-# Check available GPU devices.
-#print("The following GPU devices are available: %s" % tf.test.gpu_device_name())
+#print(tf.__version__)
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 module_handle = "https://tfhub.dev/google/openimages_v4/ssd/mobilenet_v2/1" 
@@ -136,12 +133,13 @@ def draw_boxes(image, boxes, class_names, scores, max_boxes=100, min_score=0.1):
   return image
 
 
-
+#load an image
 def load_image(path):
   img = tf.io.read_file(path)
   img = tf.image.decode_jpeg(img, channels=3)
   return img
 
+#run the object detector and choose only flower boxes
 def run_detector(detector, path):
   img = load_image(path)
 
@@ -169,14 +167,17 @@ def run_detector(detector, path):
   new_result = {'detection_boxes': detection_boxes, 'detection_scores': detection_scores, 'detection_class_entities': detection_class_entities}
 
   return new_result
-
+  
+  
+#draw the boxes on the image
 def initiate_all_boxes(new_result, path): 
   img = load_image(path)
   image_with_boxes = draw_boxes(
       img.numpy(), new_result["detection_boxes"],
       new_result["detection_class_entities"], new_result["detection_scores"])
   display_image(image_with_boxes)
-  
+ 
+#only select largest boxes with prediction threshold 
 def non_max_suppression(result, iou_threshold=.1, score_threshold=.1):
   boxes = result['detection_boxes']
   scores = result['detection_scores']
@@ -190,8 +191,7 @@ def non_max_suppression(result, iou_threshold=.1, score_threshold=.1):
   new_result = {'detection_boxes': selected_boxes, 'detection_scores': selected_scores, 'detection_class_entities': selected_entities}
   return new_result
 
-
-
+#get box areas
 def get_box_areas(result):
   area = []
   for box in result['detection_boxes']:
@@ -201,37 +201,28 @@ def get_box_areas(result):
     area.append(w*h)
   return area
 
-
-
+#get the indexes for the top boxes
 def get_top_index(areas_list, ntop=10):
   top = ntop*-1
   topn_index = sorted(range(len(areas_list)), key=lambda i: areas_list[i])[top:]
   return topn_index
 
-
-
+#get the top boxes
 def get_top_boxes(result, indexes):
   top_boxes = []
   for index in indexes:
     top_boxes.append(result['detection_boxes'][index])
   return top_boxes
 
-
-
+#get boxes that meet area threshold
 def get_min_boxes(result, areas, minsize=1.25):
   indexes = [i for i,v in enumerate(areas) if v >=minsize]
   min_boxes = []
   for index in indexes:
     min_boxes.append(result['detection_boxes'][index])
   return min_boxes
-
-
-
-def unique(list1): 
-    x = np.array(list1) 
-    return(np.unique(x))
-    
-
+  
+#crop boxes and run predictions on the crops
 def crop_box(top_boxes, downloaded_image_path, directory, model):
   predsdict = {}
   
@@ -260,7 +251,7 @@ def crop_box(top_boxes, downloaded_image_path, directory, model):
     predsdict[filename]=preds
   return predsdict
   
-    
+ #save the crops in a directory   
 def save_crops(top_boxes, downloaded_image_path, directory):
     filedir = downloaded_image_path.split('.')[0].split('/')[-1]
     fileNames = []
@@ -283,7 +274,7 @@ def save_crops(top_boxes, downloaded_image_path, directory):
         fileNames.append(newFileName)
     return fileNames
 
-
+#resize the crops
 def resize(image_path):
   img = image.load_img(image_path, target_size=(224,224))
   img = image.img_to_array(img)
@@ -291,8 +282,7 @@ def resize(image_path):
   img /= 255
   return img
 
-
-
+#get predictions from images
 def predictions(image, threshold=.5):
     preds = model.predict_proba(image, verbose=1)  
     labels = ['Calla Lily', 'Dahlia', 'Daisy', 'Iris', 'Lily', 'Peony', 'Ranunculus', 'Rose', 'Sunflower', 'Tulip']
@@ -313,7 +303,7 @@ def predictions(image, threshold=.5):
     return img_label
 
 
-
+#get predictions from a directory with a certain name, at a prediction threshold of 50% default
 def get_predictions(directory, threshold=.5, fileNames = []):
   predsdict={}
   for filename in fileNames:
@@ -324,6 +314,7 @@ def get_predictions(directory, threshold=.5, fileNames = []):
     predsdict['crops/' + filename]=preds
   return predsdict
   
+  #get the information we need for our app
 def processImgFromURL(imgpath):
     downloaded_image = download_and_resize_image(imgpath)
     originalPreds = predictions(resize(downloaded_image), threshold=.1)
