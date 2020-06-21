@@ -32,7 +32,7 @@ import cv2
 # Print Tensorflow version
 #print(tf.__version__)
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+#os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 module_handle = "https://tfhub.dev/google/openimages_v4/ssd/mobilenet_v2/1" 
 detector = hub.load(module_handle).signatures['default']
 execution_path = os.getcwd()
